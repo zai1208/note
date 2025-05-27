@@ -29,13 +29,13 @@ brew install note
 
 ### Using Go
 
-```
+```bash
 go install github.com/armand-sauzay/note@latest
 ```
 
 ### From Source
 
-```
+```bash
 git clone https://github.com/armand-sauzay/note.git
 cd note
 go install .
