@@ -259,7 +259,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			return m, nil
-		}
+		
 		case "g":
 		    if len(m.links) > 0 {
 		        m.activeLink = (m.activeLink + 1) % len(m.links)
@@ -278,6 +278,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		            }
 		        }
 		    }
+		}
 
 		// Add viewport key handling
 		if !m.renaming {
