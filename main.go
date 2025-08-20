@@ -25,6 +25,11 @@ type Note struct {
 	expanded             bool // Track if folder is expanded
 }
 
+type Link struct {
+    Start, End int    // byte positions in the rendered string
+    Target     string // the linked note path or title
+}
+
 type Model struct {
 	config        *Config
 	notes         []Note
@@ -36,7 +41,11 @@ type Model struct {
 	textInput     textinput.Model
 	renaming      bool
 	mdRenderer    *glamour.TermRenderer
+	links       []Link
+    activeLink  int // index of the currently highlighted link
 }
+
+
 
 var version = "dev"
 
@@ -251,6 +260,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+		case "g":
+		    if len(m.links) > 0 {
+		        m.activeLink = (m.activeLink + 1) % len(m.links)
+		        // scroll viewport to link position
+		        m.viewport.ScrollTo(m.links[m.activeLink].Start)
+		    }
+		case "enter":
+		    if len(m.links) > 0 && m.activeLink < len(m.links) {
+		        target := m.links[m.activeLink].Target
+		        // Find the note with that title and open it
+		        for i, note := range m.notes {
+		            if note.title == target {
+		                m.cursor = i
+		                m.updatePreview()
+		                break
+		            }
+		        }
+		    }
 
 		// Add viewport key handling
 		if !m.renaming {
@@ -317,6 +344,10 @@ func (m *Model) updatePreview() {
 			rendered := m.renderMarkdown(string(content))
 			m.viewport.SetContent(rendered)
 			m.viewport.GotoTop()
+
+			// Extract wikilinks [[note]] positions in rendered text
+            m.links = extractLinks(string(content))
+            m.activeLink = 0
 		}
 	}
 }
@@ -381,6 +412,28 @@ func extractTitle(content string) string {
 		}
 	}
 	return ""
+}
+
+// Minimal extractor for [[wikilink]] style
+func extractLinks(s string) []Link {
+    var links []Link
+    offset := 0
+    for {
+        start := strings.Index(s[offset:], "[[")
+        if start == -1 {
+            break
+        }
+        start += offset
+        end := strings.Index(s[start:], "]]")
+        if end == -1 {
+            break
+        }
+        end += start + 2
+        target := s[start+2 : end-2]
+        links = append(links, Link{Start: start, End: end, Target: target})
+        offset = end
+    }
+    return links
 }
 
 func initialModel() (Model, error) {
